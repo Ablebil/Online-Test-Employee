@@ -1,9 +1,8 @@
-import { NextRequest } from "next/server";
 import * as AttendanceService from "@/services/attendance.service";
 import { sendError, sendSuccess } from "@/lib/api-response";
 import { AppError } from "@/lib/exception";
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const employeeId = req.headers.get("x-user-id");
 
