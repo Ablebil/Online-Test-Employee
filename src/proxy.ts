@@ -4,7 +4,13 @@ import { jwtVerify } from "jose";
 
 const publicRoutes = ["/api/v1/auth/login", "/api/v1/auth/logout"];
 
-const protectedRoutes = ["/api/v1/auth/me", "/api/v1/departments"];
+const adminRoutes = ["/api/v1/employees"];
+
+const protectedRoutes = [
+  "/api/v1/auth/me",
+  "/api/v1/departments",
+  ...adminRoutes,
+];
 
 async function authenticate(req: NextRequest) {
   const token = req.cookies.get("token")?.value;
@@ -37,6 +43,14 @@ export async function proxy(req: NextRequest) {
     return NextResponse.json(
       { success: false, message: "Sesi tidak valid, silakan login kembali" },
       { status: 401 },
+    );
+  }
+
+  const isAdminOnly = adminRoutes.some((route) => pathname.startsWith(route));
+  if (isAdminOnly && payload.role !== "ADMIN") {
+    return NextResponse.json(
+      { success: false, message: "Kamu tidak memiliki akses ke resource ini" },
+      { status: 403 },
     );
   }
 
