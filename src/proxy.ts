@@ -9,6 +9,7 @@ const adminRoutes = ["/api/v1/employees"];
 const protectedRoutes = [
   "/api/v1/auth/me",
   "/api/v1/departments",
+  "/api/v1/attendance",
   ...adminRoutes,
 ];
 
