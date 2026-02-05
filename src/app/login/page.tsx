@@ -1,18 +1,38 @@
+// src/app/login/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Loader2, LogIn, AlertCircle } from "lucide-react";
 import { LoginSchema, LoginDTO } from "@/schemas/auth.schema";
 import { authClient } from "@/lib/api/auth";
 import { FormInput } from "@/components/ui/FormInput";
+import { AppError } from "@/lib/exception";
+import { getRedirectPath } from "@/utils/redirect";
+import type { AuthUser, ApiResponse } from "@/types";
 
 export default function LoginPage() {
   const router = useRouter();
   const [globalError, setGlobalError] = useState("");
+
+  const { data: userResponse, isLoading: isCheckingAuth } = useQuery<
+    ApiResponse<AuthUser>
+  >({
+    queryKey: ["auth-me"],
+    queryFn: authClient.getMe,
+    retry: false,
+  });
+
+  useEffect(() => {
+    // if already logged in, redirect to appropriate page
+    if (!isCheckingAuth && userResponse?.data) {
+      const redirectPath = getRedirectPath(userResponse.data);
+      router.replace(redirectPath);
+    }
+  }, [isCheckingAuth, userResponse, router]);
 
   const {
     register,
@@ -28,11 +48,13 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: authClient.login,
-    onSuccess: () => {
-      router.push("/dashboard");
+    onSuccess: (response) => {
+      const user = response?.data?.employee;
+      const redirectPath = getRedirectPath(user);
+      router.push(redirectPath);
     },
-    onError: () => {
-      const msg = "Terjadi kesalahan saat login";
+    onError: (error: AppError) => {
+      const msg = error.message || "Terjadi kesalahan saat login";
       setGlobalError(msg);
     },
   });
@@ -41,6 +63,24 @@ export default function LoginPage() {
     setGlobalError("");
     loginMutation.mutate(data);
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-secondary/30">
+        <div className="text-center">
+          <Loader2
+            className="animate-spin text-primary mx-auto mb-4"
+            size={40}
+          />
+          <p className="text-muted-foreground">Memeriksa autentikasi...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (userResponse?.data) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4">
