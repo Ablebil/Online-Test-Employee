@@ -4,7 +4,7 @@ import {
   EmploymentStatus,
   PrismaClient,
   Role,
-} from "../app/generated/prisma/client";
+} from "@/app/generated/prisma/client";
 import bcrypt from "bcrypt";
 import "dotenv/config";
 
