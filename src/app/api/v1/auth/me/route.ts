@@ -1,20 +1,13 @@
 import * as AuthService from "@/services/auth.service";
 import { sendError, sendSuccess } from "@/lib/api-response";
 import { AppError } from "@/lib/exception";
-import { cookies } from "next/headers";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
+    const userId = req.headers.get("x-user-id");
+    const user = await AuthService.getAuthenticatedUser(userId!);
 
-    const token = cookieStore.get("token")?.value;
-    if (!token) {
-      throw new AppError("Sesi tidak ditemukan, silakan login kembali", 401);
-    }
-
-    const user = await AuthService.verifySession(token);
-
-    return sendSuccess(user, "User terautentikasi");
+    return sendSuccess(user, "Berhasil mengambil data user");
   } catch (error: unknown) {
     if (error instanceof AppError) {
       return sendError(error.message, error.statusCode);
