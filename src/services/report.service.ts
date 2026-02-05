@@ -5,8 +5,11 @@ import { getHolidays, Holiday } from "@/lib/dayoff-api";
 interface MonthlyReportData {
   month: number;
   year: number;
+  totalDays: number;
   totalWorkingDays: number;
+  totalWeekends: number;
   totalHolidays: number;
+  totalNonWorkingDays: number;
   holidays: Holiday[];
   employees: ReportRepo.AttendanceSummary[];
 }
@@ -31,31 +34,45 @@ export const getMonthlyReport = async (
   ]);
 
   const daysInMonth = new Date(year, month, 0).getDate();
-  const totalHolidays = holidays.length;
 
-  let saturdays = 0;
+  // for easier holiday date lookup
+  const holidayDates = new Set(
+    holidays.map((h) => {
+      const date = new Date(h.date);
+      return date.toISOString().split("T")[0];
+    }),
+  );
+
+  const nonWorkingDates = new Set<string>(); // avoid double counting
+  let workingDays = 0;
+  let weekendDays = 0;
+
   for (let day = 1; day <= daysInMonth; day++) {
     const date = new Date(year, month - 1, day);
-    if (date.getDay() === 6) {
-      saturdays++;
+    const dateString = date.toISOString().split("T")[0];
+    const dayOfWeek = date.getDay();
+
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isHoliday = holidayDates.has(dateString);
+
+    if (isWeekend || isHoliday) {
+      nonWorkingDates.add(dateString);
+      if (isWeekend) {
+        weekendDays++;
+      }
+    } else {
+      workingDays++;
     }
   }
-
-  let sundays = 0;
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month - 1, day);
-    if (date.getDay() === 0) {
-      sundays++;
-    }
-  }
-
-  const totalWorkingDays = daysInMonth - totalHolidays - saturdays - sundays;
 
   return {
     month,
     year,
-    totalWorkingDays,
-    totalHolidays,
+    totalDays: daysInMonth,
+    totalWorkingDays: workingDays,
+    totalWeekends: weekendDays,
+    totalHolidays: holidays.length,
+    totalNonWorkingDays: nonWorkingDates.size,
     holidays,
     employees: attendanceSummary,
   };
