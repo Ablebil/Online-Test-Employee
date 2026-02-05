@@ -4,7 +4,7 @@ import { jwtVerify } from "jose";
 
 const publicRoutes = ["/api/v1/auth/login", "/api/v1/auth/logout"];
 
-const adminRoutes = ["/api/v1/employees"];
+const adminRoutes = ["/api/v1/employees", "/api/v1/reports"];
 
 const protectedRoutes = [
   "/api/v1/auth/me",
