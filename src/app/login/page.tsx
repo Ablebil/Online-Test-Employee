@@ -1,22 +1,21 @@
-// src/app/login/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Loader2, LogIn, AlertCircle } from "lucide-react";
+import { Loader2, LogIn } from "lucide-react";
 import { LoginSchema, LoginDTO } from "@/schemas/auth.schema";
 import { authClient } from "@/lib/api/auth";
 import { FormInput } from "@/components/ui/FormInput";
 import { AppError } from "@/lib/exception";
 import { getRedirectPath } from "@/utils/redirect";
+import { toast } from "@/utils/toast";
 import type { AuthUser, ApiResponse } from "@/types";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [globalError, setGlobalError] = useState("");
 
   const { data: userResponse, isLoading: isCheckingAuth } = useQuery<
     ApiResponse<AuthUser>
@@ -27,7 +26,6 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // if already logged in, redirect to appropriate page
     if (!isCheckingAuth && userResponse?.data) {
       const redirectPath = getRedirectPath(userResponse.data);
       router.replace(redirectPath);
@@ -51,16 +49,15 @@ export default function LoginPage() {
     onSuccess: (response) => {
       const user = response?.data?.employee;
       const redirectPath = getRedirectPath(user);
+      toast.success("Login berhasil!");
       router.push(redirectPath);
     },
     onError: (error: AppError) => {
-      const msg = error.message || "Terjadi kesalahan saat login";
-      setGlobalError(msg);
+      toast.error(error.message || "Terjadi kesalahan saat login");
     },
   });
 
   const onSubmit = (data: LoginDTO) => {
-    setGlobalError("");
     loginMutation.mutate(data);
   };
 
@@ -85,7 +82,6 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-secondary/30 p-4">
       <div className="w-full max-w-md bg-card border border-border rounded-xl shadow-lg p-8">
-        {/* header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary/10 text-primary mb-4">
             <LogIn size={24} />
@@ -96,15 +92,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* error alert */}
-        {globalError && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex items-center gap-3 text-destructive animate-in fade-in slide-in-from-top-2">
-            <AlertCircle size={20} />
-            <span className="text-sm font-medium">{globalError}</span>
-          </div>
-        )}
-
-        {/* login form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <FormInput
             label="Email"

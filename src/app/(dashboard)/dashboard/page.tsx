@@ -11,6 +11,7 @@ import { DigitalClock } from "@/components/dashboard/DigitalClock";
 import { AttendanceActions } from "@/components/dashboard/AttendanceActions";
 import { AttendanceTimeline } from "@/components/dashboard/AttendanceTimeline";
 import type { AuthUser, TodayAttendanceStatus, ApiResponse } from "@/types";
+import { toast } from "@/utils/toast";
 
 export default function DashboardPage() {
   const queryClient = useQueryClient();
@@ -34,16 +35,22 @@ export default function DashboardPage() {
     mutationFn: () => attendanceClient.checkIn({}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attendance-today"] });
+      toast.success("Check in berhasil!");
     },
-    onError: (err: AppError) => alert(err.message || "Gagal Check In"),
+    onError: (err: AppError) => {
+      toast.error(err.message || "Gagal check in");
+    },
   });
 
   const checkOutMutation = useMutation({
     mutationFn: () => attendanceClient.checkOut({}),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["attendance-today"] });
+      toast.success("Check out berhasil!");
     },
-    onError: (err: AppError) => alert(err.message || "Gagal Check Out"),
+    onError: (err: AppError) => {
+      toast.error(err.message || "Gagal check out");
+    },
   });
 
   if (isLoading) {

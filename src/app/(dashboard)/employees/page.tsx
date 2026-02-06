@@ -4,10 +4,13 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { employeeClient } from "@/lib/api/employee";
 import { departmentClient } from "@/lib/api/department";
-import { Loader2, Plus, AlertCircle } from "lucide-react";
+import { Loader2, Users, Plus, AlertCircle } from "lucide-react";
 import { EmployeeTable } from "@/components/employees/EmployeeTable";
 import { EmployeeFormModal } from "@/components/employees/EmployeeFormModal";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AppError } from "@/lib/exception";
+import { toast } from "@/utils/toast";
+import { useConfirm } from "@/hooks/useConfirm";
 import type { Employee, Department, ApiResponse } from "@/types";
 import type {
   CreateEmployeeDTO,
@@ -20,6 +23,8 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
   );
+  const { confirm, isOpen, options, handleConfirm, handleCancel } =
+    useConfirm();
 
   const { data: employeesResponse, isLoading: isLoadingEmployees } = useQuery<
     ApiResponse<Employee[]>
@@ -41,10 +46,10 @@ export default function EmployeesPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       setIsModalOpen(false);
-      alert("Pegawai berhasil ditambahkan");
+      toast.success("Pegawai berhasil ditambahkan");
     },
     onError: (error: AppError) => {
-      alert(error.message || "Gagal menambahkan pegawai");
+      toast.error(error.message || "Gagal menambahkan pegawai");
     },
   });
 
@@ -55,10 +60,10 @@ export default function EmployeesPage() {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       setIsModalOpen(false);
       setSelectedEmployee(null);
-      alert("Pegawai berhasil diperbarui");
+      toast.success("Pegawai berhasil diperbarui");
     },
     onError: (error: AppError) => {
-      alert(error.message || "Gagal memperbarui pegawai");
+      toast.error(error.message || "Gagal memperbarui pegawai");
     },
   });
 
@@ -66,10 +71,10 @@ export default function EmployeesPage() {
     mutationFn: (id: string) => employeeClient.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
-      alert("Pegawai berhasil dihapus");
+      toast.success("Pegawai berhasil dihapus");
     },
     onError: (error: AppError) => {
-      alert(error.message || "Gagal menghapus pegawai");
+      toast.error(error.message || "Gagal menghapus pegawai");
     },
   });
 
@@ -88,10 +93,16 @@ export default function EmployeesPage() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = (employee: Employee) => {
-    if (
-      confirm(`Apakah Anda yakin ingin menghapus pegawai ${employee.name}?`)
-    ) {
+  const handleDelete = async (employee: Employee) => {
+    const confirmed = await confirm({
+      title: "Hapus Pegawai",
+      message: `Apakah Anda yakin ingin menghapus pegawai ${employee.name}?`,
+      confirmText: "Hapus",
+      cancelText: "Batal",
+      variant: "danger",
+    });
+
+    if (confirmed) {
       deleteMutation.mutate(employee.id);
     }
   };
@@ -111,9 +122,11 @@ export default function EmployeesPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+            <Users size={24} />
+          </div>
           <div>
             <h1 className="text-3xl font-bold text-foreground">Data Pegawai</h1>
             <p className="text-muted-foreground mt-1">
@@ -131,7 +144,6 @@ export default function EmployeesPage() {
         </button>
       </div>
 
-      {/* table */}
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         {employees.length === 0 ? (
           <div className="text-center py-16">
@@ -142,7 +154,8 @@ export default function EmployeesPage() {
               Belum Ada Pegawai
             </h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Belum ada data pegawai. Tambahkan pegawai baru terlebih dahulu
+              Belum ada data pegawai. Klik tombol Tambah Pegawai untuk
+              menambahkan pegawai baru.
             </p>
           </div>
         ) : (
@@ -154,7 +167,6 @@ export default function EmployeesPage() {
         )}
       </div>
 
-      {/* modal */}
       <EmployeeFormModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -162,6 +174,17 @@ export default function EmployeesPage() {
         employee={selectedEmployee}
         departments={departments}
         isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      <ConfirmDialog
+        isOpen={isOpen}
+        onClose={handleCancel}
+        onConfirm={handleConfirm}
+        title={options.title}
+        message={options.message}
+        confirmText={options.confirmText}
+        cancelText={options.cancelText}
+        variant={options.variant}
       />
     </div>
   );
