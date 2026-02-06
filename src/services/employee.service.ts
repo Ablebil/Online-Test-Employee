@@ -61,8 +61,11 @@ export const updateEmployee = async (id: string, data: UpdateEmployeeDTO) => {
     }
   }
 
-  const updateData = { ...data };
-  if (data.password) {
+  const updateData: UpdateEmployeeDTO = { ...data };
+
+  if (!data.password) {
+    delete updateData.password;
+  } else {
     updateData.password = await bcrypt.hash(data.password, 10);
   }
 

@@ -16,8 +16,9 @@ const BaseEmployeeSchema = z.object({
   phone: z
     .string()
     .max(20, "Nomor telepon maksimal sebanyak 20 karakter")
-    .optional()
-    .nullable(),
+    .transform((val) => (val === "" ? null : val))
+    .nullable()
+    .optional(),
   role: RoleEnum.default("PEGAWAI"),
   position: z
     .string()
@@ -25,7 +26,10 @@ const BaseEmployeeSchema = z.object({
     .max(100, "Posisi maksimal 100 karakter"),
   employmentStatus: EmploymentStatusEnum.default("TETAP"),
   departmentId: z.uuid("Format ID departemen salah"),
-  joinDate: z.iso.date("Format tanggal masuk harus YYYY-MM-DD").optional(),
+  joinDate: z
+    .string()
+    .transform((val) => (val === "" ? undefined : val))
+    .pipe(z.iso.date("Format tanggal masuk harus YYYY-MM-DD").optional()),
 });
 
 export const CreateEmployeeSchema = BaseEmployeeSchema.extend({
@@ -35,9 +39,8 @@ export const CreateEmployeeSchema = BaseEmployeeSchema.extend({
 export const UpdateEmployeeSchema = BaseEmployeeSchema.extend({
   password: z
     .string()
-    .min(6, "Password minimal sebanyak 6 karakter")
-    .or(z.literal(""))
-    .optional(),
+    .transform((val) => (val === "" ? undefined : val))
+    .pipe(z.string().min(6, "Password minimal sebanyak 6 karakter").optional()),
 }).partial();
 
 export type CreateEmployeeDTO = z.infer<typeof CreateEmployeeSchema>;
