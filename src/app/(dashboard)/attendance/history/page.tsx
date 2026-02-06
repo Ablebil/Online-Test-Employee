@@ -1,21 +1,13 @@
+// app/(dashboard)/attendance/history/page.tsx
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import { attendanceClient } from "@/lib/api/attendance";
 import { Loader2 } from "lucide-react";
+import { useAttendanceHistory } from "@/hooks/useAttendance";
 import { AttendanceHistoryCard } from "@/components/attendance/AttendanceHistoryCard";
 import { EmptyAttendanceState } from "@/components/attendance/EmptyAttendanceState";
-import type { AttendanceHistory, ApiResponse } from "@/types";
 
 export default function AttendanceHistoryPage() {
-  const { data: historyResponse, isLoading } = useQuery<
-    ApiResponse<AttendanceHistory[]>
-  >({
-    queryKey: ["attendance-history"],
-    queryFn: attendanceClient.getHistory,
-  });
-
-  const historyData = historyResponse?.data || [];
+  const { history, isLoading } = useAttendanceHistory();
 
   if (isLoading) {
     return (
@@ -38,13 +30,13 @@ export default function AttendanceHistoryPage() {
         </div>
       </div>
 
-      {historyData.length === 0 ? (
+      {history.length === 0 ? (
         <div className="bg-card border border-border rounded-2xl p-8">
           <EmptyAttendanceState />
         </div>
       ) : (
         <div className="space-y-4">
-          {historyData.map((attendance) => (
+          {history.map((attendance) => (
             <AttendanceHistoryCard
               key={attendance.id}
               attendance={attendance}

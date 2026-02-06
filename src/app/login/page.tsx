@@ -1,29 +1,21 @@
+// app/login/page.tsx
 "use client";
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
 import { Loader2, LogIn } from "lucide-react";
 import { LoginSchema, LoginDTO } from "@/schemas/auth.schema";
-import { authClient } from "@/lib/api/auth";
 import { FormInput } from "@/components/ui/FormInput";
-import { AppError } from "@/lib/exception";
 import { getRedirectPath } from "@/utils/redirect";
 import { toast } from "@/utils/toast";
-import type { AuthUser, ApiResponse } from "@/types";
+import { useAuthUser, useLogin } from "@/hooks/useAuth";
 
 export default function LoginPage() {
   const router = useRouter();
-
-  const { data: userResponse, isLoading: isCheckingAuth } = useQuery<
-    ApiResponse<AuthUser>
-  >({
-    queryKey: ["auth-me"],
-    queryFn: authClient.getMe,
-    retry: false,
-  });
+  const { userResponse, isLoading: isCheckingAuth } = useAuthUser();
+  const loginMutation = useLogin();
 
   useEffect(() => {
     if (!isCheckingAuth && userResponse?.data) {
@@ -44,21 +36,19 @@ export default function LoginPage() {
     },
   });
 
-  const loginMutation = useMutation({
-    mutationFn: authClient.login,
-    onSuccess: (response) => {
-      const user = response?.data?.employee;
-      const redirectPath = getRedirectPath(user);
-      toast.success("Login berhasil!");
-      router.push(redirectPath);
-    },
-    onError: (error: AppError) => {
-      toast.error(error.message || "Terjadi kesalahan saat login");
-    },
-  });
-
   const onSubmit = (data: LoginDTO) => {
-    loginMutation.mutate(data);
+    loginMutation.mutate(data, {
+      onSuccess: (response) => {
+        const user = response?.data?.employee;
+        const redirectPath = getRedirectPath(user);
+        toast.success("Login berhasil!");
+        router.push(redirectPath);
+      },
+      onError: (error: Error) => {
+        const message = (error as Error & { message?: string })?.message;
+        toast.error(message || "Terjadi kesalahan saat login");
+      },
+    });
   };
 
   if (isCheckingAuth) {

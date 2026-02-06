@@ -1,24 +1,27 @@
+// app/(dashboard)/employees/page.tsx
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { employeeClient } from "@/lib/api/employee";
-import { departmentClient } from "@/lib/api/department";
 import { Loader2, Users, Plus, AlertCircle } from "lucide-react";
 import { EmployeeTable } from "@/components/employees/EmployeeTable";
 import { EmployeeFormModal } from "@/components/employees/EmployeeFormModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { AppError } from "@/lib/exception";
 import { toast } from "@/utils/toast";
 import { useConfirm } from "@/hooks/useConfirm";
-import type { Employee, Department, ApiResponse } from "@/types";
+import {
+  useEmployees,
+  useCreateEmployee,
+  useUpdateEmployee,
+  useDeleteEmployee,
+} from "@/hooks/useEmployees";
+import { useDepartments } from "@/hooks/useDepartments";
+import type { Employee } from "@/types";
 import type {
   CreateEmployeeDTO,
   UpdateEmployeeDTO,
 } from "@/schemas/employee.schema";
 
 export default function EmployeesPage() {
-  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
     null,
@@ -26,65 +29,42 @@ export default function EmployeesPage() {
   const { confirm, isOpen, options, handleConfirm, handleCancel } =
     useConfirm();
 
-  const { data: employeesResponse, isLoading: isLoadingEmployees } = useQuery<
-    ApiResponse<Employee[]>
-  >({
-    queryKey: ["employees"],
-    queryFn: employeeClient.getAll,
-  });
+  const { employees, isLoading: isLoadingEmployees } = useEmployees();
+  const { departments } = useDepartments();
 
-  const { data: departmentsResponse } = useQuery<ApiResponse<Department[]>>({
-    queryKey: ["departments"],
-    queryFn: departmentClient.getAll,
-  });
-
-  const employees = employeesResponse?.data || [];
-  const departments = departmentsResponse?.data || [];
-
-  const createMutation = useMutation({
-    mutationFn: (data: CreateEmployeeDTO) => employeeClient.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      setIsModalOpen(false);
-      toast.success("Pegawai berhasil ditambahkan");
-    },
-    onError: (error: AppError) => {
-      toast.error(error.message || "Gagal menambahkan pegawai");
-    },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateEmployeeDTO }) =>
-      employeeClient.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      setIsModalOpen(false);
-      setSelectedEmployee(null);
-      toast.success("Pegawai berhasil diperbarui");
-    },
-    onError: (error: AppError) => {
-      toast.error(error.message || "Gagal memperbarui pegawai");
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => employeeClient.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["employees"] });
-      toast.success("Pegawai berhasil dihapus");
-    },
-    onError: (error: AppError) => {
-      toast.error(error.message || "Gagal menghapus pegawai");
-    },
-  });
+  const createMutation = useCreateEmployee();
+  const updateMutation = useUpdateEmployee();
+  const deleteMutation = useDeleteEmployee();
 
   const handleCreateOrUpdate = (
     data: CreateEmployeeDTO | UpdateEmployeeDTO,
   ) => {
     if (selectedEmployee) {
-      updateMutation.mutate({ id: selectedEmployee.id, data });
+      updateMutation.mutate(
+        { id: selectedEmployee.id, data },
+        {
+          onSuccess: () => {
+            setIsModalOpen(false);
+            setSelectedEmployee(null);
+            toast.success("Pegawai berhasil diperbarui");
+          },
+          onError: (error: Error) => {
+            const message = (error as Error & { message?: string })?.message;
+            toast.error(message || "Gagal memperbarui pegawai");
+          },
+        },
+      );
     } else {
-      createMutation.mutate(data as CreateEmployeeDTO);
+      createMutation.mutate(data as CreateEmployeeDTO, {
+        onSuccess: () => {
+          setIsModalOpen(false);
+          toast.success("Pegawai berhasil ditambahkan");
+        },
+        onError: (error: Error) => {
+          const message = (error as Error & { message?: string })?.message;
+          toast.error(message || "Gagal menambahkan pegawai");
+        },
+      });
     }
   };
 
@@ -103,7 +83,15 @@ export default function EmployeesPage() {
     });
 
     if (confirmed) {
-      deleteMutation.mutate(employee.id);
+      deleteMutation.mutate(employee.id, {
+        onSuccess: () => {
+          toast.success("Pegawai berhasil dihapus");
+        },
+        onError: (error: Error) => {
+          const message = (error as Error & { message?: string })?.message;
+          toast.error(message || "Gagal menghapus pegawai");
+        },
+      });
     }
   };
 

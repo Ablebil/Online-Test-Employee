@@ -1,57 +1,51 @@
+// app/(dashboard)/dashboard/page.tsx
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { attendanceClient } from "@/lib/api/attendance";
-import { authClient } from "@/lib/api/auth";
 import { Loader2 } from "lucide-react";
-import { AppError } from "@/lib/exception";
 import { useClock } from "@/hooks/useClock";
+import { useAuthUser } from "@/hooks/useAuth";
+import {
+  useAttendanceToday,
+  useCheckIn,
+  useCheckOut,
+} from "@/hooks/useAttendance";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { DigitalClock } from "@/components/dashboard/DigitalClock";
 import { AttendanceActions } from "@/components/dashboard/AttendanceActions";
 import { AttendanceTimeline } from "@/components/dashboard/AttendanceTimeline";
-import type { AuthUser, TodayAttendanceStatus, ApiResponse } from "@/types";
 import { toast } from "@/utils/toast";
 
 export default function DashboardPage() {
-  const queryClient = useQueryClient();
   const { currentTime, greeting } = useClock();
+  const { user } = useAuthUser();
+  const { attendanceData, isLoading } = useAttendanceToday();
 
-  const { data: userResponse } = useQuery<ApiResponse<AuthUser>>({
-    queryKey: ["auth-me"],
-    queryFn: authClient.getMe,
-  });
-  const user = userResponse?.data;
+  const checkInMutation = useCheckIn();
+  const checkOutMutation = useCheckOut();
 
-  const { data: attendanceResponse, isLoading } = useQuery<
-    ApiResponse<TodayAttendanceStatus>
-  >({
-    queryKey: ["attendance-today"],
-    queryFn: attendanceClient.getTodayStatus,
-  });
-  const attendanceData = attendanceResponse?.data;
+  const handleCheckIn = () => {
+    checkInMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Check in berhasil!");
+      },
+      onError: (error: Error) => {
+        const message = (error as Error & { message?: string })?.message;
+        toast.error(message || "Gagal check in");
+      },
+    });
+  };
 
-  const checkInMutation = useMutation({
-    mutationFn: () => attendanceClient.checkIn({}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-today"] });
-      toast.success("Check in berhasil!");
-    },
-    onError: (err: AppError) => {
-      toast.error(err.message || "Gagal check in");
-    },
-  });
-
-  const checkOutMutation = useMutation({
-    mutationFn: () => attendanceClient.checkOut({}),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["attendance-today"] });
-      toast.success("Check out berhasil!");
-    },
-    onError: (err: AppError) => {
-      toast.error(err.message || "Gagal check out");
-    },
-  });
+  const handleCheckOut = () => {
+    checkOutMutation.mutate(undefined, {
+      onSuccess: () => {
+        toast.success("Check out berhasil!");
+      },
+      onError: (error: Error) => {
+        const message = (error as Error & { message?: string })?.message;
+        toast.error(message || "Gagal check out");
+      },
+    });
+  };
 
   if (isLoading) {
     return (
@@ -75,8 +69,8 @@ export default function DashboardPage() {
           <AttendanceActions
             hasCheckedIn={hasCheckedIn}
             hasCheckedOut={hasCheckedOut}
-            onCheckIn={() => checkInMutation.mutate()}
-            onCheckOut={() => checkOutMutation.mutate()}
+            onCheckIn={handleCheckIn}
+            onCheckOut={handleCheckOut}
             isCheckingIn={checkInMutation.isPending}
             isCheckingOut={checkOutMutation.isPending}
           />
