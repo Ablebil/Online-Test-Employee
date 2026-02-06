@@ -20,14 +20,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    const mappedBody = {
-      ...body,
-      employmentStatus: body.employment_status,
-      departmentId: body.department_id,
-      joinDate: body.join_date,
-    };
-
-    const validation = CreateEmployeeSchema.safeParse(mappedBody);
+    const validation = CreateEmployeeSchema.safeParse(body);
     if (!validation.success) {
       return sendError("Validasi gagal", 400, validation.error.format());
     }

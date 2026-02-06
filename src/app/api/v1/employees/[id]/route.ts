@@ -25,16 +25,7 @@ export async function PATCH(req: Request, { params }: Params) {
     const { id } = await params;
     const body = await req.json();
 
-    const mappedBody = {
-      ...body,
-      ...(body.employment_status && {
-        employmentStatus: body.employment_status,
-      }),
-      ...(body.department_id && { departmentId: body.department_id }),
-      ...(body.join_date && { joinDate: body.join_date }),
-    };
-
-    const validation = UpdateEmployeeSchema.safeParse(mappedBody);
+    const validation = UpdateEmployeeSchema.safeParse(body);
     if (!validation.success) {
       return sendError("Validasi gagal", 400, validation.error.format());
     }
