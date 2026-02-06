@@ -40,8 +40,13 @@ export const EmployeeFormModal = ({
     reset,
   } = useForm<CreateEmployeeDTO | UpdateEmployeeDTO>({
     resolver: zodResolver(schema),
-    defaultValues: employee
-      ? {
+  });
+
+  // reset from when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      if (employee) {
+        reset({
           nik: employee.nik,
           name: employee.name,
           email: employee.email,
@@ -53,18 +58,24 @@ export const EmployeeFormModal = ({
           joinDate: employee.joinDate
             ? new Date(employee.joinDate).toISOString().split("T")[0]
             : "",
-        }
-      : {
+          password: "",
+        });
+      } else {
+        reset({
+          nik: "",
+          name: "",
+          email: "",
+          phone: "",
+          password: "",
+          position: "",
+          departmentId: "",
           role: "PEGAWAI",
           employmentStatus: "TETAP",
-        },
-  });
-
-  useEffect(() => {
-    if (!isOpen) {
-      reset();
+          joinDate: "",
+        });
+      }
     }
-  }, [isOpen, reset]);
+  }, [isOpen, employee, reset]);
 
   if (!isOpen) return null;
 
@@ -128,7 +139,11 @@ export const EmployeeFormModal = ({
               isEdit ? "Password (Kosongkan jika tidak diubah)" : "Password"
             }
             type="password"
-            placeholder="Minimal 6 karakter"
+            placeholder={
+              isEdit
+                ? "Kosongkan jika tidak ingin mengubah"
+                : "Minimal 6 karakter"
+            }
             registration={register("password")}
             error={errors.password?.message}
             disabled={isLoading}

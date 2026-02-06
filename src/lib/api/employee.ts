@@ -21,7 +21,7 @@ export const employeeClient = {
   },
 
   update: async (id: string, data: UpdateEmployeeDTO) => {
-    const response = await api.put(`/employees/${id}`, data);
+    const response = await api.patch(`/employees/${id}`, data);
     return response.data;
   },
 

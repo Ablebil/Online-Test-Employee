@@ -36,6 +36,7 @@ export const UpdateEmployeeSchema = BaseEmployeeSchema.extend({
   password: z
     .string()
     .min(6, "Password minimal sebanyak 6 karakter")
+    .or(z.literal(""))
     .optional(),
 }).partial();
 
